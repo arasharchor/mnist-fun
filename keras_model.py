@@ -9,7 +9,7 @@ from keras.utils import np_utils
 from keras.datasets import mnist
 
 
-def set_basic_model_param():
+def set_basic_model_param(model_info):
     ''' 
     INPUT:  None
     OUTPUT: (1) Dictionary of important values for formatting data and 
@@ -30,11 +30,11 @@ def set_basic_model_param():
                    'n_dense_nodes': 128,
                    'primary_dropout': 0.25,
                    'secondary_dropout': 0.5,
-                   'model_build': 'v.0.1'}
+                   'model_build': 'v.0.1_{}'.format(model_info)}
     return model_param
 
 
-def load_and_format_mnist_data(model_param, categorical_y=False):
+def load_and_format_mnist_data(model_param, normalize_X=False, categorical_y=False):
     ''' 
     INPUT:  (1) Dictionary: values important for formatting data appropriately
     OUTPUT: (1) 3D numpy array: the X training data, of shape (#train_images,
@@ -65,7 +65,7 @@ def load_and_format_mnist_data(model_param, categorical_y=False):
     X_test /= 255.
 
     if categorical_y:
-	# convert class vectors to binary class matrices
+        # convert class vectors to binary class matrices
         y_train = np_utils.to_categorical(y_train, model_param['n_classes'])
         y_test = np_utils.to_categorical(y_test, model_param['n_classes'])
     return X_train, y_train, X_test, y_test
@@ -125,6 +125,7 @@ def fit_and_save_model(model, model_param, X_train, y_train, X_test, y_test):
     json_string = model.to_json()
     open(json_file_name, 'w').write(json_string)
     model.save_weights(weights_file_name)
+
 
 if __name__ == '__main__':
     model_param = set_basic_model_param()

@@ -28,11 +28,13 @@ def predict_classwise_top_n_acc(model, X_test, y_test, n=1):
     '''
     unique_classes = np.unique(y_test)
     y_test = y_test.reshape((y_test.shape[0], 1))
+    print y_test
     probas = model.predict_proba(X_test, batch_size=32)
     top_n_guesses = np.fliplr(np.argsort(probas, axis=1))[:, :n]
     classwise_acc_dict = {}
     for unique_class in unique_classes:
         unique_class_locs = np.where(y_test == unique_class)[0]
+        print len(unique_class_locs)
         top_n_guesses_for_this_class = top_n_guesses[unique_class_locs]
         in_top_n = [1 if y_test[row_idx] in row
                     else 0
@@ -53,9 +55,13 @@ def add_gaussian_noise(X_train, mean, stddev):
     n_chan = X_train.shape[1]
     n_rows = X_train.shape[2]
     n_cols = X_train.shape[3]
-    noise = np.random.normal(mean, stddev, (n_imgs, n_chan, n_rows, n_cols))
+    if stddev == 0:
+        noise = np.zeros((n_imgs, n_chan, n_rows, n_cols))
+    else:
+        noise = np.random.normal(mean, stddev/255., 
+                                 (n_imgs, n_chan, n_rows, n_cols))
     noisy_X = X_train + noise
-    clipped_noisy_X = np.clip(noisy_X, 0., 255.)
+    clipped_noisy_X = np.clip(noisy_X, 0., 1.)
     return clipped_noisy_X
 
 
