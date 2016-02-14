@@ -6,7 +6,19 @@ from additional_functions import add_gaussian_noise
 from keras_model import set_basic_model_param, load_and_format_mnist_data
 
 
-def show_1_noisy_X_example(noise_stddevs, X_train):
+def show_1_noisy_X_example(noise_stddevs, X_train, ind_to_display=0):
+    ''' 
+    INPUT:  (1) 1D numpy array: standard deviations of the gaussian noise to add
+                to an example image from the X training data. Note that the image
+                data has not yet been scaled from 0 to 1, but still has values
+                between 0 and 255
+            (2) 4D numpy array: X training data
+            (3) integer: the index from X_train to display with noise over it
+    OUTPUT: None
+    
+    This function displays one image with increasing levels of gaussian noisee
+    on top of it.
+    '''
     fig = plt.figure(figsize=(8, 1))
     outer_grid = gridspec.GridSpec(1, 13, wspace=0.0, hspace=0.0)
     pylab.xticks([])
@@ -14,7 +26,7 @@ def show_1_noisy_X_example(noise_stddevs, X_train):
     for i, noise_stddev in zip(range(13), noise_stddevs[::8]):
         X_train_noisy = add_gaussian_noise(X_train, 0, noise_stddev)
         ax = plt.Subplot(fig, outer_grid[i])
-        ax.imshow(X_train_noisy[0].reshape((28,28)), cmap=plt.cm.Greys)
+        ax.imshow(X_train_noisy[ind_to_display].reshape((28,28)), cmap=plt.cm.Greys)
         ax.set_xticks([])
         ax.set_yticks([])
         fig.add_subplot(ax)
