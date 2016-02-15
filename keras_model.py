@@ -110,6 +110,8 @@ def compile_model(model_param):
 
 
 def fit_and_save_model(model, model_param, X_train, y_train, X_test, y_test):
+        X_train_noisy = add_gaussian_noise(X_train, 0, noise_stddev)
+        X_train_noisy = add_gaussian_noise(X_train, 0, noise_stddev)
     ''' 
     INPUT:  (1) Compiled (but untrained) Keras model
             (2) Dictionary of model parameters
