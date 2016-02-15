@@ -34,14 +34,19 @@ def set_basic_model_param(model_info):
     return model_param
 
 
-def load_and_format_mnist_data(model_param, normalize_X=False, categorical_y=False):
+def load_and_format_mnist_data(model_param, categorical_y=False):
     ''' 
     INPUT:  (1) Dictionary: values important for formatting data appropriately
-    OUTPUT: (1) 3D numpy array: the X training data, of shape (#train_images,
-                #rows, #columns); for MNIST this is (60000, 28, 28)
+            (2) boolean: make the y values categorical? Keras requires the
+                shape (#labels, #unique_labels), ie. (10000, 10) to train the
+                model. However, randomizing the y labels is more easily done
+                before the y labels are made categorical, when they are
+                still of shape (#labels,) ie. (10000,)
+    OUTPUT: (1) 4D numpy array: the X training data, of shape (#train_images,
+                #chan, #rows, #columns); for MNIST this is (60000, 1, 28, 28)
             (2) 1D numpy array: the training labels, y, of shape (60000,)
-            (3) 3D numpy array: the X test data, of shape (#test_images, 
-                #rows, #columns); for MNIST this is (10000, 28, 28)
+            (3) 4D numpy array: the X test data, of shape (#test_images, 
+                #chan, #rows, #columns); for MNIST this is (10000, 1, 28, 28)
             (4) 1D numpy array: the test labels, of shape (10000,)
 
     This function loads the data and labels, reshapes the data to be in the 
@@ -65,13 +70,16 @@ def load_and_format_mnist_data(model_param, normalize_X=False, categorical_y=Fal
     X_test /= 255.
 
     if categorical_y:
-        # convert class vectors to binary class matrices
         y_train = np_utils.to_categorical(y_train, model_param['n_classes'])
         y_test = np_utils.to_categorical(y_test, model_param['n_classes'])
     return X_train, y_train, X_test, y_test
 
 
 def compile_model(model_param):
+    ''' 
+    INPUT:  (1) Dictionary of model parameters
+    OUTPUT: (1) Compiled (but untrained) Keras model
+    '''
     model = Sequential()
     model_param_to_add = [Convolution2D(model_param['n_conv_nodes'], 
                                         model_param['conv_size'],
@@ -102,6 +110,17 @@ def compile_model(model_param):
 
 
 def fit_and_save_model(model, model_param, X_train, y_train, X_test, y_test):
+    ''' 
+    INPUT:  (1) Compiled (but untrained) Keras model
+            (2) Dictionary of model parameters
+            (3) 4D numpy array: the X training data, of shape (#train_images,
+                #chan, #rows, #columns); for MNIST this is (60000, 1, 28, 28)
+            (4) 1D numpy array: the training labels, y, of shape (60000,)
+            (5) 4D numpy array: the X test data, of shape (#test_images, 
+                #chan, #rows, #columns); for MNIST this is (10000, 1, 28, 28)
+            (6) 1D numpy array: the test labels, of shape (10000,)
+    OUTPUT: None, but the model will be saved to /models
+    '''
     start = time.clock()
     model.fit(X_train, y_train, batch_size=model_param['batch_size'],
               nb_epoch=model_param['n_epoch'],
@@ -125,10 +144,3 @@ def fit_and_save_model(model, model_param, X_train, y_train, X_test, y_test):
     json_string = model.to_json()
     open(json_file_name, 'w').write(json_string)
     model.save_weights(weights_file_name)
-
-
-if __name__ == '__main__':
-    model_param = set_basic_model_param()
-    X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param)
-    model = compile_model(model_param)
-    fit_and_save_model(model, model_param, X_train, y_train, X_test, y_test)
