@@ -4,6 +4,7 @@ from additional_functions import *
 import matplotlib  # necessary to save plots remotely; comment out if local
 matplotlib.use('Agg')  # comment out if local
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 from keras.utils import np_utils
 import pandas as pd
 
@@ -94,11 +95,9 @@ def calc_raw_acc(characteristic_noise_vals, X_or_y):
         print '''Calculating raw accuracy for models with a characteristic 
                  noise value of {}'''.format(cnv)
         name_to_append = '{}_{}'.format(X_or_y, cnv)
-        print name_to_append
         model = load_model('models/KerasBaseModel_v.0.1_{}'.format(name_to_append))
         y_pred = model.predict_classes(X_test)
         acc_to_add = np.sum(y_pred == y_test) / float(len(y_test))
-        print acc_to_add
         accs += [acc_to_add]
     return accs 
     
@@ -125,24 +124,27 @@ def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
     plt.xlabel('Standard Deviation of Gaussian Noise Added to Training Data')
     plt.ylabel('Accuracy')
     plt.legend(loc=3)
-    #plt.ylim(.96, 1.01)
     plt.savefig('{}.png'.format(saveas), dpi=200)
 
 
 def plot_acc_vs_noisy_y(percent_random_labels, accs, saveas):
     ''' 
-    INPUT:  (1) 1D numpy array: The percent of training labels randomized
+    INPUT:  (1) 1D numpy array: The fraction of training labels randomized
             (2) list: The accuracies for each model (the output of 
                 calc_raw_acc with 'y')
             (3) string: the name to save the plot
     OUTPUT: None. However, the plot will be saved at the specified location.
     '''
-    plt.plot(percent_random_labels, accs, label='Model Accuracy on Test Set')
-    plt.xlabel('Percent of Training Labels Randomized')
-    plt.ylabel('Accuracy')
-    plt.xlim(0, 0.33)
-    plt.ylim(0, 1)
-    plt.axhline(.1, ls=':', color='k', label='Naive Guessing')
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(percent_random_labels, accs, label='Model Accuracy on Test Set')
+    ax.set_xlabel('Percent of Training Labels Randomized')
+    ax.set_ylabel('Accuracy')
+    x_tick_vals = ax.get_xticks()
+    ax.set_xticklabels(['{:2.1f}%'.format(x * 100) for x in x_tick_vals])
+    ax.set_xlim(0, .33)
+    ax.set_ylim(0, 1)
+    ax.axhline(.1, ls=':', color='k', label='Naive Guessing')
+    ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                ncol=2, mode="expand", borderaxespad=0.)
-    plt.savefig('{}.png'.format(saveas), dpi=200)
+    fig.savefig('{}.png'.format(saveas), dpi=200)
