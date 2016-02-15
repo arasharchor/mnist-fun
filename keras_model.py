@@ -11,7 +11,8 @@ from keras.datasets import mnist
 
 def set_basic_model_param(model_info):
     ''' 
-    INPUT:  None
+    INPUT:  (1) any additional information (to be converted to string)
+                that will be added to the filename when the model is saved
     OUTPUT: (1) Dictionary of important values for formatting data and 
                 compiling model. 
 
@@ -79,6 +80,9 @@ def compile_model(model_param):
     ''' 
     INPUT:  (1) Dictionary of model parameters
     OUTPUT: (1) Compiled (but untrained) Keras model
+
+    Any large scale model architecture changes would happen here in 
+    conjunction with adjustments to set_basic_model_param.
     '''
     model = Sequential()
     model_param_to_add = [Convolution2D(model_param['n_conv_nodes'], 
@@ -110,8 +114,6 @@ def compile_model(model_param):
 
 
 def fit_and_save_model(model, model_param, X_train, y_train, X_test, y_test):
-        X_train_noisy = add_gaussian_noise(X_train, 0, noise_stddev)
-        X_train_noisy = add_gaussian_noise(X_train, 0, noise_stddev)
     ''' 
     INPUT:  (1) Compiled (but untrained) Keras model
             (2) Dictionary of model parameters
