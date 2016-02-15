@@ -47,10 +47,16 @@ def train_models_on_noisy_data(characteristic_noise_vals, X_or_y):
 
 def calc_all_classwise_accs(noise_stddevs):
     '''
-    INPUT:  (1) 1D numpy array: The standard deviations of the gaussian noise 
+    INPUT:  (1) 1D numpy array: The standard deviations of the Gaussian noise 
                 being added to the data
     OUTPUT: (1) dictionary of lists: The accuracies over all standard deviations 
                 for each digit in MNIST
+
+    This function calculates the classwise accuracies as a function of the
+    standard deviation of the Gaussian noise added to the X training data. 
+    It isn't set up to handle the noisy y data, as classwise accuracies 
+    do not make much sense to calculate when looking at the effect that
+    randomizing some percentage of the labels has on the model performance. 
     '''
     model_param = set_basic_model_param(noise_stddevs[0])
     X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param, 
@@ -69,7 +75,43 @@ def calc_all_classwise_accs(noise_stddevs):
     return classwise_accs
 
 
-def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs):
+def calc_raw_acc(characteristic_noise_vals, X_or_y):
+    ''' 
+    INPUT:  (1) 1D numpy array: if on X, should be the standard deviations of
+                the gaussian noise being added; if on y, should be the 
+                percentages of labels to be randomly changed
+            (2) string: 'X' or 'y' corresponding to which data was made noisy
+                before training the models for which we are calculating the acc
+
+    This function calculates the raw accuracy (over all classes) a series of
+    models with different characteristic noise values.
+    '''
+    model_param = set_basic_model_param(0)    
+    X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param, 
+                                                categorical_y=False)
+    accs = []
+    for cnv in characteristic_noise_vals:
+        print '''Calculating raw accuracy for models with a characteristic 
+                 noise value of {}'''.format(cnv)
+        name_to_append = '{}_{}'.format(X_or_y, cnv)
+        print name_to_append
+        model = load_model('models/KerasBaseModel_v.0.1_{}'.format(name_to_append))
+        y_pred = model.predict_classes(X_test)
+        acc_to_add = np.sum(y_pred == y_test) / float(len(y_test))
+        print acc_to_add
+        accs += [acc_to_add]
+    return accs 
+    
+
+def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
+    ''' 
+    INPUT:  (1) 1D numpy array: The standard deviations of the Gaussian noise 
+                being added to the data
+            (2) dictionary of lists: The accuracies over all standard deviations 
+                for each digit in MNIST (the output of calc_all_classwise_accs)
+            (3) string: the name to save the plot
+    OUTPUT: None. However, the plot will be saved at the specified location.
+    '''
     unique_classes = sorted(classwise_accs.keys())
     color_inds = np.linspace(0, 1, len(unique_classes))
     for color_ind, unique_class in zip(color_inds, unique_classes):
@@ -84,11 +126,23 @@ def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs):
     plt.ylabel('Accuracy')
     plt.legend(loc=3)
     #plt.ylim(.96, 1.01)
-    plt.savefig('classwise_accuracy_vs_noisy_X_jet_3.png', dpi=200)
+    plt.savefig('{}.png'.format(saveas), dpi=200)
 
-if __name__ == '__main__':
-    pass
-    #noise_stddevs = np.linspace(0, 192, 97)
-    #train_models_on_noisy_data(noise_stddevs, 'X')
-    #classwise_accs = calc_all_classwise_accs(noise_stddevs)
-    #plot_acc_vs_noisy_X(noise_stddevs, classwise_accs)
+
+def plot_acc_vs_noisy_y(percent_random_labels, accs, saveas):
+    ''' 
+    INPUT:  (1) 1D numpy array: The percent of training labels randomized
+            (2) list: The accuracies for each model (the output of 
+                calc_raw_acc with 'y')
+            (3) string: the name to save the plot
+    OUTPUT: None. However, the plot will be saved at the specified location.
+    '''
+    plt.plot(percent_random_labels, accs, label='Model Accuracy on Test Set')
+    plt.xlabel('Percent of Training Labels Randomized')
+    plt.ylabel('Accuracy')
+    plt.xlim(0, 0.33)
+    plt.ylim(0, 1)
+    plt.axhline(.1, ls=':', color='k', label='Naive Guessing')
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+               ncol=2, mode="expand", borderaxespad=0.)
+    plt.savefig('{}.png'.format(saveas), dpi=200)
