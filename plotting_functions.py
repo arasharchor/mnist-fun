@@ -13,7 +13,7 @@ import pandas as pd
 def train_models_on_noisy_data(characteristic_noise_vals, X_or_y):
     ''' 
     INPUT:  (1) 1D numpy array: if on X, should be the standard deviations of
-                the gaussian noise being added; if on y, should be the 
+                the Gaussian noise being added; if on y, should be the 
                 percentages of labels to be randomly changed
             (2) string: 'X' or 'y' corresponding to which data to make noisy
     OUTPUT: None, directly at least. All models will be saved to /models    
@@ -80,7 +80,7 @@ def calc_all_classwise_accs(noise_stddevs):
 def calc_raw_acc(characteristic_noise_vals, X_or_y):
     ''' 
     INPUT:  (1) 1D numpy array: if on X, should be the standard deviations of
-                the gaussian noise being added; if on y, should be the 
+                the Gaussian noise being added; if on y, should be the 
                 percentages of labels to be randomly changed
             (2) string: 'X' or 'y' corresponding to which data was made noisy
                 before training the models for which we are calculating the acc
@@ -111,6 +111,11 @@ def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
                 for each digit in MNIST (the output of calc_all_classwise_accs)
             (3) string: the name to save the plot
     OUTPUT: None. However, the plot will be saved at the specified location.
+
+    Classwise accuracies will be plotted vs. the standard deviation of Gaussian
+    noise added to the X training data. A rolling mean is applied to make the 
+    plot readable; nans created by the rolling mean are filled with original
+    values for completeness.
     '''
     unique_classes = sorted(classwise_accs.keys())
     color_inds = np.linspace(0, 1, len(unique_classes))
@@ -161,8 +166,8 @@ def show_1_noisy_X_example(noise_stddevs, X_train, ind_to_display=0):
             (3) integer: the index from X_train to display with noise over it
     OUTPUT: None, but the plot will show to screen
     
-    This function displays one image with increasing levels of gaussian noisee
-    on top of it.
+    This function displays one image (specified by ind_to_display) 
+    with increasing levels of Gaussian noise on top of it.
     '''
     fig = plt.figure(figsize=(8, 1))
     outer_grid = gridspec.GridSpec(1, 13, wspace=0.0, hspace=0.0)
@@ -225,7 +230,7 @@ def load_data_and_show_noisy_X():
     
     This function loads the data and utilizes show_all_noisy_X_example to
     give an example of what the training data look like with increasing levels
-    of gaussian noise. 
+    of Gaussian noise. 
     '''
     model_param = set_basic_model_param(0)
     noise_stddevs = np.linspace(0, 192, 97)
