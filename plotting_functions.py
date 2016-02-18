@@ -1,15 +1,16 @@
 import numpy as np
 from keras_model import *
 from additional_functions import *
-#import matplotlib  # necessary to save plots remotely; comment out if local
-#matplotlib.use('Agg')  # comment out if local
+# import matplotlib  # necessary to save plots remotely; comment out if local
+# matplotlib.use('Agg')  # comment out if local
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import pylab
 from keras.utils import np_utils
 import pandas as pd
+from mpl_toolkits.mplot3d import Axes3D
 
-
+### Model Training Functions###
 def train_models_on_noisy_data(characteristic_noise_vals, X_or_y):
     ''' 
     INPUT:  (1) 1D numpy array: if on X, should be the standard deviations of
@@ -47,6 +48,40 @@ def train_models_on_noisy_data(characteristic_noise_vals, X_or_y):
                                X_test, y_test)
 
 
+def train_model_meshgrid(percent_random_labels, batchsizes, dropout_scalars):
+    ''' 
+    INPUT:  (1) 1D numpy array: fraction of y labels to randomize
+            (2) 1D numpy array: size of batches to train models on
+            (3) 1D numpy array: the scalars by which to change the 
+                built-in dropout values (0.25 and 0.5: see keras_model
+                for specifics)
+    OUTPUT: None, but all models will be saved to /models
+
+    This function trains models on a mesh of parameters (percent random labels,
+    batch sizes, and dropout levels). Model accuracies can then be calculated
+    from these models to be plotted in 3 dimensions: see calc_meshgrid_acc.
+    '''
+    model_param = set_basic_model_param(0)
+    X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param,
+                                            categorical_y=False)
+    for percent_random in percent_random_labels:
+        noisy_y_train = add_label_noise(y_train, percent_random)
+        noisy_y_train = np_utils.to_categorical(noisy_y_train, 
+                                                model_param['n_classes'])
+        y_test = np_utils.to_categorical(y_test, model_param['n_classes'])
+        for batchsize in batchsizes:
+            for dropout_scalar in dropout_scalars:
+                print '''Training model with {} random labels, a batchsize of {}, and a dropout scalar of {}'''.format(percent_random, batchsize, dropout_scalar)
+                name_to_append = 'y_{}_{}_{}'.format(percent_random, batchsize,
+                                                     dropout_scalar)
+                model_param = set_basic_model_param(name_to_append, 
+                                dropout_scalar=dropout_scalar,
+                                batchsize=batchsize)
+                model = compile_model(model_param)
+                fit_and_save_model(model, model_param, X_train, noisy_y_train, 
+                                   X_test, y_test)
+
+### Accuracy Calculating Functions###
 def calc_all_classwise_accs(noise_stddevs):
     '''
     INPUT:  (1) 1D numpy array: The standard deviations of the Gaussian noise 
@@ -101,8 +136,45 @@ def calc_raw_acc(characteristic_noise_vals, X_or_y):
         acc_to_add = np.sum(y_pred == y_test) / float(len(y_test))
         accs += [acc_to_add]
     return accs 
-    
 
+
+def calc_meshgrid_acc(percent_random_labels, batchsizes, dropout_scalars):
+    '''
+    INPUT:  (1) 1D numpy array: fraction of y labels to randomize
+            (2) 1D numpy array: size of batches to train models on
+            (3) 1D numpy array: the scalars by which to change the 
+                built-in dropout values (0.25 and 0.5: see keras_model
+                for specifics)
+    OUTPUT: (1) 3D numpy array of accuracies corresponding to the models
+                trained on the grid of parameters specified in the input
+
+    This function will calculate all accuracies for the grid of model
+    parameters being varied. All models must have been trained and saved
+    in /models using train_model_meshgrid before this function can be
+    utilized.
+    '''
+    model_param = set_basic_model_param(0)    
+    X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param, 
+                                                categorical_y=False)
+    acc_grid = np.zeros((len(percent_random_labels), len(batchsizes), len(dropout_scalars)))
+    for pr_ind, percent_random in enumerate(percent_random_labels):
+        for b_ind, batchsize in enumerate(batchsizes):
+            for d_ind, dropout_scalar in enumerate(dropout_scalars):
+                print '''Calculating raw accuracy for model with {} random labels, a batchsize of {}, and a dropout scalar of {}'''.format(percent_random, batchsize, dropout_scalar)
+                name_to_append = 'y_{}_{}_{}'.format(percent_random, batchsize,
+                                                     dropout_scalar)
+                model_param = set_basic_model_param(name_to_append, 
+                                dropout_scalar=dropout_scalar,
+                                batchsize=batchsize)
+                model = load_model('models/KerasBaseModel_v.0.1_{}'.format(name_to_append))
+                y_pred = model.predict_classes(X_test)
+                acc_to_add = np.sum(y_pred == y_test) / float(len(y_test))
+                print 'Accuracy is {}\n'.format(acc_to_add)
+                acc_grid[pr_ind, b_ind, d_ind] = acc_to_add
+    return acc_grid
+
+
+### Plotting Functions ###
 def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
     ''' 
     INPUT:  (1) 1D numpy array: The standard deviations of the Gaussian noise 
@@ -134,7 +206,7 @@ def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
 
 
 def plot_acc_vs_noisy_y(percent_random_labels, accs, saveas):
-    ''' 
+    '''
     INPUT:  (1) 1D numpy array: The fraction of training labels randomized
             (2) list: The accuracies for each model (the output of 
                 calc_raw_acc with 'y')
@@ -156,6 +228,51 @@ def plot_acc_vs_noisy_y(percent_random_labels, accs, saveas):
     fig.savefig('{}.png'.format(saveas), dpi=200)
 
 
+def plot_acc_vs_noisy_y_surface(percent_random_labels, batchsizes, 
+                                dropout_scalars, acc_grid, saveas=None):
+    ''' 
+    INPUT:  (1) 1D numpy array: fraction of y labels to randomize
+            (2) 1D numpy array: size of batches to train models on
+            (3) 1D numpy array: the scalars by which to change the 
+                built-in dropout values (0.25 and 0.5: see keras_model
+                for specifics)
+            (4) 3D numpy array of accuracies corresponding to the models
+                trained on the grid of parameters specified in the input
+            (5) string, optional: the filename to save the plot as
+    '''
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    color_inds = np.linspace(0, 1, len(dropout_scalars))
+    x = percent_random_labels
+    y = np.log2(batchsizes)
+    xxyy = np.meshgrid(x, y)
+    xx = xxyy[0]
+    yy = xxyy[1]
+    acc_grid_layers = [acc_grid[:, :, 0], acc_grid[:, :, 1]]
+    dropout_labels = ['No Dropout', 'With Dropout']
+    for acc_grid, color_ind, dropout_label in zip(acc_grid_layers, 
+                                                 color_inds,
+                                                 dropout_labels):
+        z = acc_grid
+        c = plt.cm.winter(color_ind)
+        print xx.shape
+        print yy.shape
+        ax.plot_wireframe(xx, yy, z.T, color=c, label=dropout_label)
+    naive_model = 0.1 * np.ones((len(y), len(x))) 
+    ax.plot_wireframe(xx, yy, naive_model, color='k', label='Naive Model')
+    ax.set_xlabel('Percent of Training Labels Randomized')
+    x_tick_vals = ax.get_xticks()
+    ax.set_xticklabels(['{:2.1f}%'.format(x_val * 100) for x_val in x_tick_vals])
+    ax.set_ylabel('log2(Batch Size)')
+    ax.set_zlabel('Accuracy')
+    plt.legend()
+    if saveas is not None:
+        plt.savefig('{}.png'.format(saveas))
+    else:
+        plt.show()
+
+
+### Visualizing Noisy X Functions###
 def show_1_noisy_X_example(noise_stddevs, X_train, ind_to_display=0):
     ''' 
     INPUT:  (1) 1D numpy array: standard deviations of the Gaussian noise to add
@@ -223,6 +340,7 @@ def show_all_noisy_X_example(noise_stddevs, X_train, y_train):
     plt.show()
 
 
+### Master Functions###
 def load_data_and_show_noisy_X():
     ''' 
     INPUT:  None
@@ -236,3 +354,37 @@ def load_data_and_show_noisy_X():
     noise_stddevs = np.linspace(0, 192, 97)
     X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param)
     show_all_noisy_X_example(noise_stddevs, X_train, y_train)
+
+
+def save_accuracy_meshgrid(acc_grid_filename):
+    ''' 
+    INPUT:  (1) string: the filename to save the pickled 3D numpy array of
+                accuracies to
+    OUTPUT: None, but the accuracy grid will be saved
+    
+    The grid parameters (percent random labels, batchsizes, and dropout 
+    scalars) are set in this function. The full model swarm is trained,
+    then the full accuracy grid is calculated. The accuracy grid will be
+    saved as a pickled numpy array.
+    '''
+    percent_random_labels = np.linspace(0, 0.8, 17)
+    batchsizes = 2**np.arange(3, 11)
+    dropout_scalars = np.array([0, 1])
+    train_model_meshgrid(percent_random_labels, batchsizes, dropout_scalars)
+    acc_grid = calc_meshgrid_acc(percent_random_labels, batchsizes, 
+                                    dropout_scalars)
+    acc_grid.dump('{}.pkl'.format(acc_grid_filename))
+
+
+def plot_accuracy_meshgrid(acc_grid_filename, saveas=None):
+    ''' 
+    INPUT:  (1) string: the filename to read the pickled 3D numpy array of 
+                accuracies fromi
+            (2) string: the filename to save the plot to. If 'None' the 
+                plot will show to screen
+    OUTPUT: None, but the plot will show or be saved depending on 'saveas'
+    '''
+    acc_grid = np.load(filename)
+    plot_acc_vs_noisy_y_surface(percent_random_labels, batchsizes, 
+                                dropout_scalars, acc_grid,
+                                saveas=saveas)
