@@ -9,7 +9,7 @@ from keras.utils import np_utils
 from keras.datasets import mnist
 
 
-def set_basic_model_param(model_info):
+def set_basic_model_param(model_info, dropout_scalar=1, batchsize=32):
     ''' 
     INPUT:  (1) any additional information (to be converted to string)
                 that will be added to the filename when the model is saved
@@ -24,13 +24,13 @@ def set_basic_model_param(model_info):
                    'n_chan': 1,
                    'n_classes': 10,
                    'n_epoch': 4,
-                   'batch_size': 32,
+                   'batch_size': batchsize,
                    'pool_size': 2,
                    'conv_size': 3,
                    'n_conv_nodes': 32,
                    'n_dense_nodes': 128,
-                   'primary_dropout': 0.25,
-                   'secondary_dropout': 0.5,
+                   'primary_dropout': 0.25*dropout_scalar,
+                   'secondary_dropout': 0.5*dropout_scalar,
                    'model_build': 'v.0.1_{}'.format(model_info)}
     return model_param
 
