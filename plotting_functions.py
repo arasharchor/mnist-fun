@@ -255,14 +255,12 @@ def plot_acc_vs_noisy_y_surface(percent_random_labels, batchsizes,
                                                  dropout_labels):
         z = acc_grid
         c = plt.cm.winter(color_ind)
-        print xx.shape
-        print yy.shape
         ax.plot_wireframe(xx, yy, z.T, color=c, label=dropout_label)
     naive_model = 0.1 * np.ones((len(y), len(x))) 
     ax.plot_wireframe(xx, yy, naive_model, color='k', label='Naive Model')
     ax.set_xlabel('Percent of Training Labels Randomized')
     x_tick_vals = ax.get_xticks()
-    ax.set_xticklabels(['{:2.1f}%'.format(x_val * 100) for x_val in x_tick_vals])
+    ax.set_xticklabels(['{:2.0f}%'.format(x_val * 100) for x_val in x_tick_vals])
     ax.set_ylabel('log2(Batch Size)')
     ax.set_zlabel('Accuracy')
     plt.legend()
@@ -356,6 +354,24 @@ def load_data_and_show_noisy_X():
     show_all_noisy_X_example(noise_stddevs, X_train, y_train)
 
 
+def load_meshgrid_param():
+    ''' 
+    INPUT:  None
+    OUTPUT: (1) 1D numpy array: fraction of y labels to randomize
+            (2) 1D numpy array: size of batches to train models on
+            (3) 1D numpy array: the scalars by which to change the 
+                built-in dropout values (0.25 and 0.5: see keras_model
+                for specifics)
+
+    This function sets and returns the required param for the meshgrid,
+    and is utilized in save_accuracy_meshgrid and plot_accuracy_meshgrid
+    '''
+    percent_random_labels = np.linspace(0, 0.8, 17)
+    batchsizes = 2**np.arange(3, 11)
+    dropout_scalars = np.array([0, 1])
+    return percent_random_labels, batchsizes, dropout_scalars
+
+
 def save_accuracy_meshgrid(acc_grid_filename):
     ''' 
     INPUT:  (1) string: the filename to save the pickled 3D numpy array of
@@ -367,9 +383,7 @@ def save_accuracy_meshgrid(acc_grid_filename):
     then the full accuracy grid is calculated. The accuracy grid will be
     saved as a pickled numpy array.
     '''
-    percent_random_labels = np.linspace(0, 0.8, 17)
-    batchsizes = 2**np.arange(3, 11)
-    dropout_scalars = np.array([0, 1])
+    percent_random_labels, batchsizes, dropout_scalars = load_meshgrid_param()
     train_model_meshgrid(percent_random_labels, batchsizes, dropout_scalars)
     acc_grid = calc_meshgrid_acc(percent_random_labels, batchsizes, 
                                     dropout_scalars)
@@ -379,12 +393,13 @@ def save_accuracy_meshgrid(acc_grid_filename):
 def plot_accuracy_meshgrid(acc_grid_filename, saveas=None):
     ''' 
     INPUT:  (1) string: the filename to read the pickled 3D numpy array of 
-                accuracies fromi
+                accuracies from
             (2) string: the filename to save the plot to. If 'None' the 
                 plot will show to screen
     OUTPUT: None, but the plot will show or be saved depending on 'saveas'
     '''
-    acc_grid = np.load(filename)
+    percent_random_labels, batchsizes, dropout_scalars = load_meshgrid_param()
+    acc_grid = np.load(acc_grid_filename)
     plot_acc_vs_noisy_y_surface(percent_random_labels, batchsizes, 
                                 dropout_scalars, acc_grid,
                                 saveas=saveas)
