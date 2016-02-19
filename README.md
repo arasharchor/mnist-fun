@@ -10,7 +10,7 @@ The class-wise accuracies for models trained on images with different levels of 
 
 
 ## The Effect of Mislabeled Data and Accuracy Surfaces
-The success of models trained on noisy labels is dependent on many hyperparameters. Here, I explore the connection between percentage of mislabeled data, batch size, dropout, and accuracy. All models were trained for 10 epochs. 
+The success of models trained on noisy labels is dependent on many hyperparameters. Here, I explore the connection between percentage of mislabeled data, batch size, dropout, and accuracy. Distinct trends emerge for models that utilize dropout and those that do not when the percentage of misclassified labels is between 10% and 60%. All models were trained for 10 epochs. 
 
 Below is the accuracy surface for models with dropout. For a given level of label noise, increasing the batch size increases the accuracy. 
 ![Image](/plots/acc_grid_v2_drop_view1_highres.png)
