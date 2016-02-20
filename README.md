@@ -10,8 +10,9 @@ The class-wise accuracies for models trained on images with different levels of 
 
 
 ## The Effect of Mislabeled Data and Accuracy Surfaces
-The success of models trained on noisy labels is dependent on many hyperparameters. Here, I explore the connection between percentage of mislabeled data, batch size, dropout, and accuracy. Distinct trends emerge for models that utilize dropout and those that do not when the percentage of misclassified labels is between 10% and 60%. All models were trained for 10 epochs. 
+The success of models trained on noisy labels is dependent on many hyperparameters. Here, I explore the connection between percentage of mislabeled data, batch size, dropout, and accuracy. Distinct trends emerge for models that utilize dropout and those that do not when the percentage of misclassified labels is between 10% and 60%.
 
+### Training for 10 Epochs
 Below is the accuracy surface for models with dropout. For a given level of label noise, increasing the batch size increases the accuracy. 
 ![Image](/plots/acc_grid_v2_drop_view1_highres.png)
 
@@ -24,3 +25,9 @@ Two plots are shown, split at a batch size of 32 for clarity in emphasizing tren
 ![Image](/plots/acc_grid_v2_trim_view1_highres.png)
 ![Image](/plots/acc_grid_v2_trim2_view1_highres.png)
 
+
+### Early Stopping
+Utilizing early stopping removes the ill effects of overfitting, so now there is not much difference between the dropout and no dropout model accuracies. However, the models with no dropout are more subject to variation. This suggests that using dropout as your means to prevent overfitting is better than early stopping. No trend is observed between the level of randomized labels and the number of epochs it took the model to converge.
+
+![Image](/plots/acc_grid_v3_earlystopping.png)
+![Image](/plots/converge_grid_v3_earlystopping_n_epochs.png)
