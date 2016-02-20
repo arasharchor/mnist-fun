@@ -18,7 +18,6 @@ def train_models_on_noisy_data(characteristic_noise_vals, X_or_y):
                 percentages of labels to be randomly changed
             (2) string: 'X' or 'y' corresponding to which data to make noisy
     OUTPUT: None, directly at least. All models will be saved to /models    
-
     This function loads the basic data, then loops through the characteristic
     noise values and trains models on those noisy data. Classwise accuracies 
     can then be calculated from these models. 
@@ -156,7 +155,9 @@ def calc_meshgrid_acc(percent_random_labels, batchsizes, dropout_scalars):
     model_param = set_basic_model_param(0)    
     X_train, y_train, X_test, y_test = load_and_format_mnist_data(model_param, 
                                                 categorical_y=False)
-    acc_grid = np.zeros((len(percent_random_labels), len(batchsizes), len(dropout_scalars)))
+    acc_grid = np.zeros((len(percent_random_labels), 
+                         len(batchsizes), 
+                         len(dropout_scalars)))
     for pr_ind, percent_random in enumerate(percent_random_labels):
         for b_ind, batchsize in enumerate(batchsizes):
             for d_ind, dropout_scalar in enumerate(dropout_scalars):
@@ -174,6 +175,58 @@ def calc_meshgrid_acc(percent_random_labels, batchsizes, dropout_scalars):
     return acc_grid
 
 
+def calc_meshgrid_time_to_converge(percent_random_labels, batchsizes, dropout_scalars):
+    '''
+    INPUT:  (1) 1D numpy array: fraction of y labels to randomize
+            (2) 1D numpy array: size of batches to train models on
+            (3) 1D numpy array: the scalars by which to change the 
+                built-in dropout values (0.25 and 0.5: see keras_model
+                for specifics)
+    OUTPUT: (1) 3D numpy array of the number of epochs it took the model 
+                at that point on the grid to converge
+    '''
+    converge_grid = np.zeros((len(percent_random_labels), 
+                              len(batchsizes), 
+                              len(dropout_scalars)))
+    for pr_ind, percent_random in enumerate(percent_random_labels):
+        for b_ind, batchsize in enumerate(batchsizes):
+            for d_ind, dropout_scalar in enumerate(dropout_scalars):
+                name_to_append = 'y_{}_{}_{}'.format(percent_random, batchsize,
+                                                     dropout_scalar)
+                filename = 'models/KerasBaseModel_v.0.1_{}.pkl'.format(name_to_append)
+                model_history = pickle.load(open(filename, 'rb'))
+                n_epochs = len(model_history['acc'])
+                converge_grid[pr_ind, b_ind, d_ind] = n_epochs
+    return converge_grid
+
+
+### Plotting Functions ###
+def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
+    ''' 
+    INPUT:  (1) 1D numpy array: The standard deviations of the Gaussian noise 
+                being added to the data
+            (2) dictionary of lists: The accuracies over all standard deviations 
+                for each digit in MNIST (the output of calc_all_classwise_accs)
+            (3) string: the name to save the plot
+    OUTPUT: None. However, the plot will be saved at the specified location.
+
+    Classwise accuracies will be plotted vs. the standard deviation of Gaussian
+    noise added to the X training data. A rolling mean is applied to make the 
+    plot readable; nans created by the rolling mean are filled with original
+    values for completeness.
+    '''
+    unique_classes = sorted(classwise_accs.keys())
+    color_inds = np.linspace(0, 1, len(unique_classes))
+    for color_ind, unique_class in zip(color_inds, unique_classes):
+        rolling_mean = pd.rolling_mean(np.array(classwise_accs[unique_class]),
+                                       window=3, center=False)
+        null_ind_from_rolling = np.where(pd.isnull(rolling_mean))[0]
+        orig_vals_to_fill_nulls = np.array(classwise_accs[unique_class])[null_ind_from_rolling]
+        rolling_mean[null_ind_from_rolling] = orig_vals_to_fill_nulls
+        plt.plot(noise_stddevs, rolling_mean, 
+                 color=plt.cm.jet(color_ind), label=str(unique_class))
+    plt.xlabel('Standard Deviation of Gaussian Noise Added to Training Data')
+    
 ### Plotting Functions ###
 def plot_acc_vs_noisy_X(noise_stddevs, classwise_accs, saveas):
     ''' 
@@ -244,11 +297,11 @@ def plot_acc_vs_noisy_y_surface(percent_random_labels, batchsizes,
     ax = fig.add_subplot(111, projection='3d')
     color_inds = np.linspace(0, 1, len(dropout_scalars))
     x = percent_random_labels
-    y = np.log2(batchsizes)
+    y = np.log2(batchsizes)[2:]
     xxyy = np.meshgrid(x, y)
     xx = xxyy[0]
     yy = xxyy[1]
-    acc_grid_layers = [acc_grid[:, :, 0], acc_grid[:, :, 1]]
+    acc_grid_layers = [acc_grid[:, 2:, 0], acc_grid[:, 2:, 1]]
     dropout_labels = ['No Dropout', 'With Dropout']
     for acc_grid, color_ind, dropout_label in zip(acc_grid_layers, 
                                                  color_inds,
@@ -388,6 +441,22 @@ def save_accuracy_meshgrid(acc_grid_filename):
     acc_grid = calc_meshgrid_acc(percent_random_labels, batchsizes, 
                                     dropout_scalars)
     acc_grid.dump('{}.pkl'.format(acc_grid_filename))
+
+
+def save_time_to_converge_meshgrid(converge_grid_filename):
+    ''' 
+    INPUT:  (1) string: the filename to save the pickled 3D numpy array of
+                number of epochs it took the model to converge to
+    OUTPUT: None, but the grid will be saved
+    
+    The grid parameters (percent random labels, batchsizes, and dropout 
+    scalars) are set in this function. Models must have already been trained. 
+    The grid will be saved as a pickled numpy array.
+    '''
+    percent_random_labels, batchsizes, dropout_scalars = load_meshgrid_param()
+    converge_grid = calc_meshgrid_time_to_converge(percent_random_labels, batchsizes, 
+                                    dropout_scalars)
+    converge_grid.dump('{}.pkl'.format(converge_grid_filename))
 
 
 def plot_accuracy_meshgrid(acc_grid_filename, saveas=None):
