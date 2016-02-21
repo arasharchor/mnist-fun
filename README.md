@@ -1,5 +1,5 @@
 # Noise, Model Performance, and MNIST
-A weekend dive into the effects that noisy data have on model performance with MNIST. 
+A week-long dive into the effects that noisy data have on model performance with MNIST. 
 
 ## The Effect of Noisy Image Data
 As noise characterized by a Gaussian distribution is added to examples of different digits from the MNIST dataset, the digits become harder to distinguish (as seen below). 
@@ -13,7 +13,7 @@ The class-wise accuracies for models trained on images with different levels of 
 The success of models trained on noisy labels is dependent on many hyperparameters. Here, I explore the connection between percentage of mislabeled data, batch size, dropout, and accuracy. Distinct trends emerge for models that utilize dropout and those that do not when the percentage of misclassified labels is between 10% and 60%.
 
 ### Training for 10 Epochs
-Below is the accuracy surface for models with dropout. For a given level of label noise, increasing the batch size increases the accuracy. 
+Below is the accuracy surface for models with dropout for 10 epochs. For a given level of label noise, increasing the batch size increases the accuracy. 
 ![Image](/plots/acc_grid_v2_drop_view1_highres.png)
 
 The accuracy surface for models without dropout shows a distinctly different shape. For a given level of label noise, both small and large batch sizes outperform medium sized batches. It's likely that all of these models are overfitting to some extent, as test accuracies were higher on models trained for 4 epochs rather than 10 epochs (holding everything else constant). The small and large batches have higher bias than medium sized batches, but for slightly different reasons. With small batches, we end up performing significantly more weight updates (20x more with a batch size of 8 than with 128), and although these are inherently noisier, the larger number of updates raises the bias. For large batches (512, 1024), the bias is high in each weight update due to the large number of samples per batch. Medium sized batches (128, 256) get caught in the middleground of having high variance within each sample but not enough weight updates to raise the bias. As such, they overfit the training data and underperform on the test set. 
@@ -27,7 +27,7 @@ Two plots are shown, split at a batch size of 32 for clarity in emphasizing tren
 
 
 ### Early Stopping
-Utilizing early stopping removes the ill effects of overfitting, so now there is not much difference between the dropout and no dropout model accuracies. However, the models with no dropout are more subject to variation. This suggests that using dropout as your means to prevent overfitting is better than early stopping. No trend is observed between the level of randomized labels and the number of epochs it took the model to converge.
+Early stopping methods end training when the validation loss is no longer decreasing. Utilizing early stopping removes the ill effects of overfitting, so now there is not much difference between the dropout and no dropout model accuracies. However, the models with no dropout are more subject to variation. This suggests that using dropout as your means to prevent overfitting is better than early stopping. No trend is observed between the level of randomized labels and the number of epochs it took the model to converge.
 
 ![Image](/plots/acc_grid_v3_earlystopping.png)
 ![Image](/plots/converge_grid_v3_earlystopping_n_epochs.png)
